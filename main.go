@@ -5,12 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/go-playground/validator/v10"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 // ContactRequest represents the incoming request
@@ -70,11 +73,22 @@ func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 
 	// Send email here
-
-	response := map[string]interface{}{
-		"message": "Go Serverless v1.0! Your function executed successfully!",
+	from := mail.NewEmail(contactRequest.Email, contactRequest.Email)
+	subject := "Contact form submission by website"
+	to := mail.NewEmail("Alex Kearns", "alex@alexkearns.co.uk")
+	plainTextContent := contactRequest.Message
+	htmlContent := contactRequest.Message
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+	_, err = client.Send(message)
+	if err != nil {
+		return Response{Body: err.Error(), StatusCode: 500}, nil
 	}
-	return handleResponse(response, 200)
+
+	successResponse := map[string]interface{}{
+		"status": "OK",
+	}
+	return handleResponse(successResponse, 200)
 }
 
 func main() {
