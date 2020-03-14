@@ -25,6 +25,12 @@ type ContactRequest struct {
 // Response is an alias for events.APIGatewayProxyResponse
 type Response events.APIGatewayProxyResponse
 
+var responseHeaders = map[string]string{
+	"Content-Type":                     "application/json",
+	"Access-Control-Allow-Origin":      "*",
+	"Access-Control-Allow-Credentials": "true",
+}
+
 func errorMessageMap(validationTag string) string {
 	messages := map[string]string{
 		"required": "is required",
@@ -50,7 +56,7 @@ func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	// Unmarshal the json into our type return 404 if error
 	err := json.Unmarshal([]byte(request.Body), &contactRequest)
 	if err != nil {
-		return Response{Body: err.Error(), StatusCode: 404}, nil
+		return Response{Body: err.Error(), Headers: responseHeaders, StatusCode: 404}, nil
 	}
 
 	// Validate the incoming request
@@ -82,7 +88,7 @@ func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	_, err = client.Send(message)
 	if err != nil {
-		return Response{Body: err.Error(), StatusCode: 500}, nil
+		return Response{Body: err.Error(), Headers: responseHeaders, StatusCode: 500}, nil
 	}
 
 	successResponse := map[string]interface{}{
@@ -108,9 +114,7 @@ func handleResponse(responseBody map[string]interface{}, statusCode int) (Respon
 		StatusCode:      statusCode,
 		IsBase64Encoded: false,
 		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
+		Headers:         responseHeaders,
 	}
 
 	return resp, nil

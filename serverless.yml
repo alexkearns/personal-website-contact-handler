@@ -24,5 +24,4 @@ functions:
       - http:
           path: contact
           method: post
-          cors:
-            origin: '*'
+          cors: true
